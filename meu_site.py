@@ -47,6 +47,7 @@ def processar_webhook(data):
         print("Dados inseridos com sucesso no Firebase.")
     else:
         print(f"Erro ao inserir dados no Firebase: {response.text}")
+        flash(f"Erro ao inserir dados no Firebase: {response.text}", 'error')
 
 @app.route('/')
 def index():
@@ -73,8 +74,9 @@ def criar_usuario():
                 return redirect(url_for('index'))
             else:
                 print(f"Erro ao criar usuário no Firebase: {response.text}")
-                flash('Erro ao criar usuário.', 'error')
+                flash(f"Erro ao criar usuário no Firebase: {response.text}", 'error')
         except Exception as e:
+            print(f"Erro ao criar usuário: {str(e)}")
             flash(f'Erro ao criar usuário: {str(e)}', 'error')
 
     return render_template('criar_usuario.html')
@@ -104,7 +106,8 @@ def login():
                 error = 'Usuário não encontrado'
         else:
             error = 'Erro ao buscar usuário no Firebase'
-            print("Erro ao buscar usuário no Firebase:", response.text)  # Log de depuração
+            print(f"Erro ao buscar usuário no Firebase: {response.status_code} - {response.text}")  # Log de depuração
+            flash("Erro ao buscar usuário no Firebase", 'error')
 
     return render_template('login.html', error=error)
 
