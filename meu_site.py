@@ -47,7 +47,6 @@ def processar_webhook(data):
         print("Dados inseridos com sucesso no Firebase.")
     else:
         print(f"Erro ao inserir dados no Firebase: {response.text}")
-        flash(f"Erro ao inserir dados no Firebase: {response.text}", 'error')
 
 @app.route('/')
 def index():
@@ -74,9 +73,8 @@ def criar_usuario():
                 return redirect(url_for('index'))
             else:
                 print(f"Erro ao criar usuário no Firebase: {response.text}")
-                flash(f"Erro ao criar usuário no Firebase: {response.text}", 'error')
+                flash('Erro ao criar usuário.', 'error')
         except Exception as e:
-            print(f"Erro ao criar usuário: {str(e)}")
             flash(f'Erro ao criar usuário: {str(e)}', 'error')
 
     return render_template('criar_usuario.html')
@@ -87,6 +85,8 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
+        
+        print("Dados recebidos no formulário de login:", email, senha)  # Log de depuração
 
         # Faz a solicitação GET para obter os usuários com o email correspondente
         response = requests.get(f"{DATABASE_URL}/usuarios.json?orderBy=\"email\"&equalTo=\"{email}\"")
@@ -99,15 +99,14 @@ def login():
                 for key, user in users.items():
                     # Verifica se a senha corresponde à senha fornecida
                     if 'senha' in user and user['senha'] == senha:
-                        return render_template('logado.html')
+                        return render_template('logado.html', user_data=user)
                     else:
                         error = 'Senha incorreta'
             else:
                 error = 'Usuário não encontrado'
         else:
             error = 'Erro ao buscar usuário no Firebase'
-            print(f"Erro ao buscar usuário no Firebase: {response.status_code} - {response.text}")  # Log de depuração
-            flash("Erro ao buscar usuário no Firebase", 'error')
+            print("Erro ao buscar usuário no Firebase:", response.text)  # Log de depuração
 
     return render_template('login.html', error=error)
 
