@@ -58,6 +58,11 @@
         background-color: #45a049;
       }
 
+      .error {
+        color: red;
+        margin-bottom: 10px;
+      }
+
       .back-btn {
         margin-top: 20px;
       }
@@ -68,8 +73,8 @@
       <h1>Login</h1>
       <!-- Formulário de login -->
       <form action="{{ url_for('login') }}" method="POST">
-        <input type="text" name="username" placeholder="Username" /><br />
-        <input type="password" name="password" placeholder="Password" /><br />
+        <input type="text" name="email" placeholder="Email" /><br />
+        <input type="password" name="senha" placeholder="Senha" /><br />
         <input type="submit" value="Login" />
       </form>
       {% if error %}

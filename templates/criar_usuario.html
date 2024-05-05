@@ -68,8 +68,8 @@
       <h1>Criar Usuário</h1>
       <!-- Formulário de criação de usuário -->
       <form action="{{ url_for('criar_usuario') }}" method="POST">
-        <input type="text" name="username" placeholder="Username" /><br />
-        <input type="password" name="password" placeholder="Password" /><br />
+        <input type="email" name="email" placeholder="Email" /><br />
+        <input type="password" name="senha" placeholder="Senha" /><br />
         <input type="submit" value="Criar Usuário" />
       </form>
       <a href="{{ url_for('index') }}" class="back-btn">Voltar</a>

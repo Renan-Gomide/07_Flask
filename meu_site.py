@@ -1,12 +1,13 @@
 from flask import Flask, request, render_template, redirect, url_for, flash
-import requests
-import json
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = 'chavesecreta'
 
-# Configurações do Firebase
-DATABASE_URL = 'https://hashtag-a1c92-default-rtdb.firebaseio.com/'
+# DataFrame para armazenar os usuários
+usuarios = pd.DataFrame(columns=['email', 'senha'])
+# DataFrame para armazenar os clientes
+clientes = pd.DataFrame(columns=['Nome', 'Email', 'Status', 'Valor', 'Forma_Pagamento', 'Parcelas', 'Acesso', 'Mensagem'])
 
 def processar_webhook(data):
     nome = data.get('nome')
@@ -28,56 +29,45 @@ def processar_webhook(data):
         acesso = 'negado'
         mensagem = ''
 
-    # Montar os dados para serem enviados ao Firebase
-    data = {
-        'nome': nome,
-        'email': email,
-        'status': status,
-        'valor': valor,
-        'forma_pagamento': forma_pagamento,
-        'parcelas': parcelas,
-        'acesso': acesso,
-        'mensagem': mensagem
-    }
-
-    # Enviar uma solicitação POST para adicionar os dados ao Firebase Realtime Database
-    response = requests.post(f"{DATABASE_URL}/clientes.json", json=data)
-
-    if response.status_code == 200:
-        print("Dados inseridos com sucesso no Firebase.")
-    else:
-        print(f"Erro ao inserir dados no Firebase: {response.text}")
+    # Adicionar os dados ao DataFrame de clientes
+    global clientes
+    clientes = clientes.append({
+        'Nome': nome,
+        'Email': email,
+        'Status': status,
+        'Valor': valor,
+        'Forma_Pagamento': forma_pagamento,
+        'Parcelas': parcelas,
+        'Acesso': acesso,
+        'Mensagem': mensagem
+    }, ignore_index=True)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+usuarios = pd.DataFrame(columns=['email', 'senha'])
+
 @app.route('/criar_usuario', methods=['GET', 'POST'])
 def criar_usuario():
+    global usuarios
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
         print("Dados do formulário:", email, senha)
 
-        try:
-            data = {
-                'email': email,
-                'senha': senha
-            }
-
-            response = requests.post(f"{DATABASE_URL}/usuarios.json", json=data)
-
-            if response.status_code == 200:
-                print("Usuário criado com sucesso no Firebase.")
-                flash('Usuário criado com sucesso!', 'success')
-                return redirect(url_for('index'))
-            else:
-                print(f"Erro ao criar usuário no Firebase: {response.text}")
-                flash('Erro ao criar usuário.', 'error')
-        except Exception as e:
-            flash(f'Erro ao criar usuário: {str(e)}', 'error')
+        # Verifica se o email já está cadastrado
+        if email in usuarios['email'].values:
+            flash('Este email já está cadastrado!', 'error')
+        else:
+            # Adiciona o novo usuário ao DataFrame de usuarios
+            usuarios = pd.concat([usuarios, pd.DataFrame({'email': [email], 'senha': [senha]})], ignore_index=True)
+            flash('Usuário criado com sucesso!', 'success')
+            return redirect(url_for('index'))
 
     return render_template('criar_usuario.html')
+
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -85,28 +75,13 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
-        
         print("Dados recebidos no formulário de login:", email, senha)  # Log de depuração
 
-        # Faz a solicitação GET para obter os usuários com o email correspondente
-        response = requests.get(f"{DATABASE_URL}/usuarios.json?orderBy=\"email\"&equalTo=\"{email}\"")
-
-        # Verifica se a resposta foi bem-sucedida e se há dados retornados
-        if response.status_code == 200:
-            users = response.json()
-            print("Dados retornados do Firebase:", users)  # Log de depuração
-            if users:
-                for key, user in users.items():
-                    # Verifica se a senha corresponde à senha fornecida
-                    if 'senha' in user and user['senha'] == senha:
-                        return render_template('logado.html', user_data=user)
-                    else:
-                        error = 'Senha incorreta'
-            else:
-                error = 'Usuário não encontrado'
+        # Verifica se o email está cadastrado e se a senha corresponde
+        if email in usuarios['email'].values and senha == usuarios.loc[usuarios['email'] == email, 'senha'].values[0]:
+            return render_template('logado.html', clientes=clientes)
         else:
-            error = 'Erro ao buscar usuário no Firebase'
-            print("Erro ao buscar usuário no Firebase:", response.text)  # Log de depuração
+            error = 'Email ou senha incorretos'
 
     return render_template('login.html', error=error)
 

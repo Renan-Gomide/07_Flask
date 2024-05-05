@@ -3,34 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Você está logado</title>
+    <title>Logado</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f0f0;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+      table {
+        border-collapse: collapse;
+        width: 100%;
       }
-      .container {
-        text-align: center;
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 5px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
       }
-      h1 {
-        margin-bottom: 20px;
-        color: #333;
+      th {
+        background-color: #f2f2f2;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Você está logado!</h1>
-    </div>
+    <h1>Dados dos Clientes</h1>
+    <table>
+      <tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Valor</th>
+        <th>Forma de Pagamento</th>
+        <th>Parcelas</th>
+        <th>Acesso</th>
+        <th>Mensagem</th>
+      </tr>
+      {% for index, cliente in clientes.iterrows() %}
+      <tr>
+        <td>{{ cliente['Nome'] }}</td>
+        <td>{{ cliente['Email'] }}</td>
+        <td>{{ cliente['Status'] }}</td>
+        <td>{{ cliente['Valor'] }}</td>
+        <td>{{ cliente['Forma_Pagamento'] }}</td>
+        <td>{{ cliente['Parcelas'] }}</td>
+        <td>{{ cliente['Acesso'] }}</td>
+        <td>{{ cliente['Mensagem'] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
   </body>
 </html>
