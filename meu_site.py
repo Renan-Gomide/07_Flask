@@ -1,17 +1,12 @@
 from flask import Flask, request, render_template, redirect, url_for, flash
-import mysql.connector
+import requests
+import json
 
 app = Flask(__name__)
-app.secret_key = 'chavesecreta'  
+app.secret_key = 'chavesecreta'
 
-# Conexão com o banco de dados MySQL
-db_connection = mysql.connector.connect(
-    host="monorail.proxy.rlwy.net",
-    port=50352,
-    user="root",
-    password="xcDHGvuxutFYpvNqOmECEmxSrAxNaqoJ",
-    database="railway"
-)
+# Configurações do Firebase
+DATABASE_URL = 'https://hashtag-a1c92-default-rtdb.firebaseio.com/'
 
 def processar_webhook(data):
     nome = data.get('nome')
@@ -33,16 +28,25 @@ def processar_webhook(data):
         acesso = 'negado'
         mensagem = ''
 
-    # Criar uma conexão e cursor
-    cursor = db_connection.cursor()
+    # Montar os dados para serem enviados ao Firebase
+    data = {
+        'nome': nome,
+        'email': email,
+        'status': status,
+        'valor': valor,
+        'forma_pagamento': forma_pagamento,
+        'parcelas': parcelas,
+        'acesso': acesso,
+        'mensagem': mensagem
+    }
 
-    # Inserir dados na tabela clientes
-    sql = "INSERT INTO clientes (nome, email, status, valor, forma_pagamento, parcelas, acesso, mensagem) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-    val = (nome, email, status, valor, forma_pagamento, parcelas, acesso, mensagem)
-    cursor.execute(sql, val)
+    # Enviar uma solicitação POST para adicionar os dados ao Firebase Realtime Database
+    response = requests.post(f"{DATABASE_URL}/clientes.json", json=data)
 
-    # Commit das mudanças
-    db_connection.commit()
+    if response.status_code == 200:
+        print("Dados inseridos com sucesso no Firebase.")
+    else:
+        print(f"Erro ao inserir dados no Firebase: {response.text}")
 
 @app.route('/')
 def index():
@@ -53,17 +57,23 @@ def criar_usuario():
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
-        print("Dados do formulário:", email, senha)  
+        print("Dados do formulário:", email, senha)
 
         try:
-            cursor = db_connection.cursor()
-            sql = "INSERT INTO usuarios (email, senha) VALUES (%s, %s)"
-            val = (email, senha)
-            cursor.execute(sql, val)
-            db_connection.commit()
-            print("Inserção bem-sucedida")  
-            flash('Usuário criado com sucesso!', 'success')
-            return redirect(url_for('index'))
+            data = {
+                'email': email,
+                'senha': senha
+            }
+
+            response = requests.post(f"{DATABASE_URL}/usuarios.json", json=data)
+
+            if response.status_code == 200:
+                print("Usuário criado com sucesso no Firebase.")
+                flash('Usuário criado com sucesso!', 'success')
+                return redirect(url_for('index'))
+            else:
+                print(f"Erro ao criar usuário no Firebase: {response.text}")
+                flash('Erro ao criar usuário.', 'error')
         except Exception as e:
             flash(f'Erro ao criar usuário: {str(e)}', 'error')
 
@@ -75,14 +85,27 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
-        cursor = db_connection.cursor()
-        cursor.execute("SELECT * FROM usuarios WHERE email = %s AND senha = %s", (email, senha))
-        user = cursor.fetchone()
-        cursor.close()
-        if user:
-            return render_template('logado.html')
+
+        # Faz a solicitação GET para obter os usuários com o email correspondente
+        response = requests.get(f"{DATABASE_URL}/usuarios.json?orderBy=\"email\"&equalTo=\"{email}\"")
+
+        # Verifica se a resposta foi bem-sucedida e se há dados retornados
+        if response.status_code == 200:
+            users = response.json()
+            print("Dados retornados do Firebase:", users)  # Log de depuração
+            if users:
+                for key, user in users.items():
+                    # Verifica se a senha corresponde à senha fornecida
+                    if 'senha' in user and user['senha'] == senha:
+                        return render_template('logado.html')
+                    else:
+                        error = 'Senha incorreta'
+            else:
+                error = 'Usuário não encontrado'
         else:
-            error = 'Usuário ou senha incorretos'
+            error = 'Erro ao buscar usuário no Firebase'
+            print("Erro ao buscar usuário no Firebase:", response.text)  # Log de depuração
+
     return render_template('login.html', error=error)
 
 @app.route('/webhook', methods=['POST'])
